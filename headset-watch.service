@@ -1,0 +1,35 @@
+[Unit]
+Description=JBL Headset Button Watcher
+After=bluetooth.target
+
+[Service]
+# Execute as your user
+User=giannis
+Group=giannis
+
+# Point to your script
+ExecStart=/usr/bin/python3 -u /home/giannis/headset_handler.py
+
+# This is where we grant the specific permissions
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+
+# Necessary for notify-send to find your screen
+# Run 'id -u giannis' to confirm 1000 is your UID (it usually is)
+
+
+# Use 'id -u giannis' to verify 1000 is your UID
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+# Add this specific line - it tells PipeWire exactly where the socket is
+Environment=PIPEWIRE_RUNTIME_DIR=/run/user/1000
+# Force the script to look for your specific PipeWire instance
+Environment=PIPEWIRE_REMOTE=pipewire-0
+Environment=PYTHONUNBUFFERED=1
+
+# Security: Prevent the script from gaining ANY other root rights
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
+
