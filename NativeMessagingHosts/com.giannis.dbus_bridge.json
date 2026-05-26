@@ -1,0 +1,7 @@
+{
+  "name": "com.giannis.dbus_bridge",
+  "description": "Bridge between D-Bus and Chrome for JBL Headset",
+  "path": "/home/giannis/Views/mine/headset_watch/dbus_bridge.py",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://mledfbapahcdnlniiecojhpddmjfalmf/"]
+}

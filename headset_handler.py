@@ -1,44 +1,38 @@
+#!/usr/bin/env python3
 import subprocess
-import os
+from dasbus.connection import SessionMessageBus
 
+INTERFACE_NAME = "com.giannis.HeadsetControl"
+OBJECT_PATH = "/com/giannis/HeadsetControl"
 
-# Paths to standard Ubuntu system sounds
-SOUND_MUTE = "/usr/share/sounds/freedesktop/stereo/window-attention.oga"
-SOUND_UNMUTE = "/usr/share/sounds/freedesktop/stereo/audio-volume-change.oga"
+# Connect to the user's session bus
+bus = SessionMessageBus()
 
-def toggle_mute():
-    # 1. Toggle Mute
-    subprocess.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"])
-    
-    # 2. Check current state
-    # wpctl get-volume returns something like "Volume: 0.45 [MUTED]" or "Volume: 0.45"
-    result = subprocess.run(
-        ["wpctl", "get-volume", "@DEFAULT_AUDIO_SOURCE@"],
-        capture_output=True, text=True
+def broadcast_hangup():
+    # Correct GLib/dasbus method to broadcast a signal:
+    # emit_signal(destination, object_path, interface_name, signal_name, parameters)
+    bus.connection.emit_signal(
+        None,
+        OBJECT_PATH,
+        INTERFACE_NAME,
+        "HangupPressed",
+        None
     )
-    
-    is_muted = "[MUTED]" in result.stdout
-
-    # 3. Play distinctive sound and notify
-    if is_muted:
-        subprocess.run(["pw-play", SOUND_MUTE])
-        subprocess.run(["notify-send", "-t", "800", "Mic Status", "MUTED", "-i", "microphone-sensitivity-muted-symbolic"])
-    else:
-        subprocess.run(["pw-play", SOUND_UNMUTE])
-        subprocess.run(["notify-send", "-t", "800", "Mic Status", "LIVE", "-i", "microphone-sensitivity-high-symbolic"])
-
+    print(">> D-Bus Signal Emitted: HangupPressed", flush=True)
 
 def monitor_headset():
-    # Use -u for unbuffered binary output
     proc = subprocess.Popen(
-        ['stdbuf', '-oL', 'btmon'], 
-        stdout=subprocess.PIPE, 
+        ['stdbuf', '-oL', 'btmon'],
+        stdout=subprocess.PIPE,
         text=True
     )
-
-    for line in proc.stdout:
-        if "AT+CHUP" in line:
-            toggle_mute()
+    print("Listening for raw HFP AT+CHUP wire sequences...", flush=True)
+    try:
+        for line in proc.stdout:
+            if "AT+CHUP" in line:
+                broadcast_hangup()
+    except KeyboardInterrupt:
+        proc.terminate()
 
 if __name__ == "__main__":
     monitor_headset()
