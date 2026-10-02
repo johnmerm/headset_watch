@@ -2,7 +2,8 @@ let buttonFound = false;
 console.log("Inside content.js")
 function lookForMuteButton() {
   // Check common Microsoft Teams web client button signatures
-  const muteBtn = document.querySelector('button[data-inp="microphone-button"]');
+  const muteBtn = document.querySelector('button[data-inp="microphone-button"]')
+      || document.querySelector('button#mic-button');
 
   if (muteBtn && !buttonFound) {
     buttonFound = true;
@@ -27,6 +28,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Inside toggle_mute button");
     // Broaden our search query to find the button regardless of view state
     const muteBtn = document.querySelector('button[data-inp="microphone-button"]')
+      || document.querySelector('button#mic-button');
 
 
     if (muteBtn) {
@@ -64,16 +66,23 @@ function playAudioCue(isMuted) {
 
   // Frequency logic: Mute = high then drops. Unmute = low then rises.
   const now = audioCtx.currentTime;
+
+  const highValue = 600;
+  const lowValue = 300;
+  const time = 0.15;
+  const volume = 0.45;
+
+
   if (isMuted) {
-    osc.frequency.setValueAtTime(600, now);       // Start high (600Hz)
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.15); // Drop low (300Hz)
+    osc.frequency.setValueAtTime(highValue, now);       // Start high (600Hz)
+    osc.frequency.exponentialRampToValueAtTime(lowValue, now + time); // Drop low (300Hz)
   } else {
-    osc.frequency.setValueAtTime(300, now);       // Start low (300Hz)
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.15); // Rise high (600Hz)
+    osc.frequency.setValueAtTime(lowValue, now);       // Start low (300Hz)
+    osc.frequency.exponentialRampToValueAtTime(highValue, now + time); // Rise high (600Hz)
   }
 
   // Smoothly fade out the volume so it doesn't pop or click roughly
-  gainNode.gain.setValueAtTime(0.15, now); // Set comfortable volume (15%)
+  gainNode.gain.setValueAtTime(volume, now); // Set comfortable volume (15%)
   gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Fade to 0
 
   osc.connect(gainNode);
